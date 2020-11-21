@@ -101,6 +101,7 @@ public class ExtensionHUD extends ExtensionAdaptor
     private static final String HTTP_HEADER_XCSP = "X-Content-Security-Policy";
     private static final String HTTP_HEADER_WEBKIT_CSP = "X-WebKit-CSP";
     private static final String HTTP_HEADER_REFERRER_POLICY = "Referrer-Policy";
+    private static final String HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
 
     // Change only after the message has been persisted, otherwise ZAP would see the HUD injections.
     private static final int PROXY_LISTENER_ORDER = ProxyListenerLog.PROXY_LISTENER_ORDER + 1000;
@@ -435,7 +436,13 @@ public class ExtensionHUD extends ExtensionAdaptor
                     // also fail
                     msg.getResponseHeader()
                             .setHeader(HttpHeader.CACHE_CONTROL, "no-cache, no-store");
-
+                    
+                    if (this.isUpgradedHttpsDomain(uri)) {
+                        // Browser will block AJAX requests upon when domain is upgraded and Access-Control-Allow-Origin
+                        // header is set. Upgrade the header to to prevent browser from thinking it needs to block CORS
+                        msg.getResponseHeader().setHeader(HTTP_HEADER_REFERRER_POLICY, getNormalisedDomain(uri));
+                    }
+                    
                     if (this.getHudParam().isRemoveCSP()) {
                         // Remove all of them, just in case
                         msg.getResponseHeader().setHeader(HTTP_HEADER_CSP, null);
